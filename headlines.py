@@ -13,10 +13,13 @@ RSS_FEEDS = {
 }
 
 WEATHER_URL = 'http://api.openweathermap.org/data/2.5/weather?q={}&units=metric&appid=83a645c834539b9c9b7d5e70d3296162'
+CURRENCY_URL = 'https://openexchangerates.org//api/latest.json?app_id=fd16d3cff83c4dcea86e0d297bc04fca'
 
 DEFAULTS = {
     'publication': 'bbc',
-    'city': 'London, UK'
+    'city': 'Moscow, RU',
+    'currency_from': 'USD',
+    'currency_to': 'RUB'
 }
 
 
@@ -35,8 +38,17 @@ def home():
         weather = get_weather(city)
     except Exception:
         weather = {'description': 'No service available'}
-
-    return render_template("home.html", articles=articles, weather=weather)
+    # get customized currency based on user input or defaults
+    currency_from = request.args.get('currency_from')
+    if not currency_from:
+        currency_from = DEFAULTS['currency_from']
+    currency_to = request.args.get('currency_to')
+    if not currency_to:
+        currency_to = DEFAULTS['currency_to']
+    rate, currencies = get_rate(currency_from, currency_to)
+    return render_template("home.html", articles=articles, weather=weather,
+        currency_from=currency_from, currency_to=currency_to, rate=rate,
+        currencies=sorted(currencies))
 
 
 def get_news(query):
@@ -51,7 +63,6 @@ def get_news(query):
 def get_weather(query):
     query = urllib.parse.quote(query)
     url = WEATHER_URL.format(query)
-    print(url)
     data = requests.get(url)
     parsed = data.json()
     weather = None
@@ -63,6 +74,13 @@ def get_weather(query):
             'country': parsed['sys']['country']
         }
     return weather
+
+def get_rate(frm, to):
+    all_currency = requests.get(CURRENCY_URL)
+    parsed = all_currency.json().get('rates')
+    from_rate = parsed.get(frm.upper())
+    to_rate = parsed.get(to.upper())
+    return (to_rate / from_rate, parsed.keys())
 
 
 if __name__ == '__main__':
