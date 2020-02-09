@@ -28,10 +28,14 @@ DEFAULTS = {
 def home():
     # get customized headlines, based on user input or default
     publication = get_value_with_fallback('publication')
+    if not publication:
+        publication = DEFAULTS['publication']
     articles = get_news(publication)
 
     # get customized weather based on user input or defaults
     city = get_value_with_fallback('city')
+    if not city:
+        city = DEFAULTS['city']
     try:
         weather = get_weather(city)
     except Exception:
@@ -39,16 +43,17 @@ def home():
 
     # get customized currency based on user input or defaults
     currency_from = get_value_with_fallback('currency_from')
-    # if not currency_from:
-    #     currency_from = DEFAULTS['currency_from']
+    if not currency_from:
+        currency_from = DEFAULTS['currency_from']
     currency_to = get_value_with_fallback('currency_to')
-    # if not currency_to:
-    #     currency_to = DEFAULTS['currency_to']
+    if not currency_to:
+        currency_to = DEFAULTS['currency_to']
     rate, currencies = get_rate(currency_from, currency_to)
 
     # save cookies and return template
     response = make_response(render_template("home.html",
-        publication=publication.upper(), articles=articles, weather=weather,
+        publication=publication.upper(),
+        articles=articles, weather=weather,
         currency_from=currency_from, currency_to=currency_to, rate=rate,
         currencies=sorted(currencies)))
     expires = datetime.datetime.now() + datetime.timedelta(days=365)
@@ -89,6 +94,7 @@ def get_weather(query):
             'country': parsed['sys']['country']
         }
     return weather
+
 
 def get_rate(frm, to):
     all_currency = requests.get(CURRENCY_URL)
